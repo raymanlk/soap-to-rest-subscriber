@@ -64,7 +64,7 @@ public class ListenerService implements MessageListener {
 
     private void generateTemplate(long timestamp) {
         try {
-            File sourceDirectory = new File("D:/DYNAMIC-WSDL/subscriber-to-jenkins/src/main/resources/soap-template");
+            File sourceDirectory = new File("D:/DYNAMIC-WSDL/new/subscriber-to-jenkins/src/main/resources/soap-template");
             File destinationDirectory = new File("D:/DYNAMIC-WSDL/" + timestamp);
             FileUtils.copyDirectory(sourceDirectory, destinationDirectory);
         } catch (IOException e) {
