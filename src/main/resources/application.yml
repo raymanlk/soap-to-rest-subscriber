@@ -25,3 +25,5 @@ spring.jpa.show-sql: "true"
 
 queue:
   name: hello
+destination:
+  root-path: "D:/DYNAMIC-WSDL/"

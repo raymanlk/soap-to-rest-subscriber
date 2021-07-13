@@ -5,12 +5,14 @@ import com.soap.rest.BusinessTemplateApplication;
 import com.soap.rest.domain.model.entity.ControllerEntity;
 import com.soap.rest.domain.model.entity.EndpointEntity;
 import com.soap.rest.domain.model.entity.OperationEntity;
+import com.soap.rest.external.util.ReplacementConstants;
 import com.soap.rest.external.util.Utilities;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.io.ByteArrayInputStream;
@@ -23,7 +25,7 @@ import java.util.Map;
 import java.util.Optional;
 
 @Service
-public class CodeGenerateServiceImpl implements CodeGenerateService{
+public class CodeGenerateServiceImpl implements CodeGenerateService {
 
     Logger logger = LoggerFactory.getLogger(CodeGenerateServiceImpl.class);
 
@@ -32,6 +34,9 @@ public class CodeGenerateServiceImpl implements CodeGenerateService{
 
     @Autowired
     private Utilities utilities;
+
+    @Value("${destination.root-path}")
+    private String destinationPath;
 
     @Override
     public void generate(Long id) {
@@ -50,9 +55,11 @@ public class CodeGenerateServiceImpl implements CodeGenerateService{
 
     private void generateTemplate(long timestamp) {
         try {
+            logger.info("Generate base template started...");
             File sourceDirectory = new File("D:/DYNAMIC-WSDL/new/subscriber-to-jenkins/src/main/resources/soap-template");
-            File destinationDirectory = new File("D:/DYNAMIC-WSDL/" + timestamp);
+            File destinationDirectory = new File(destinationPath + timestamp);
             FileUtils.copyDirectory(sourceDirectory, destinationDirectory);
+            logger.info("Generate base template completed...");
         } catch (IOException e) {
             logger.error(e.getMessage());
         }
@@ -77,26 +84,21 @@ public class CodeGenerateServiceImpl implements CodeGenerateService{
         WSDLParser parser = new WSDLParser();
         if (endpoint.get().getUrl() != null) {
             generateUrlPom(endpoint, timestamp);
+            logger.info("Parse url started...");
             return parser.parse(endpoint.get().getUrl());
         } else if (endpoint.get().getFileEntity().getType().equals("text/xml")) {
+            logger.info("Parse wsdl started...");
             InputStream targetStream = new ByteArrayInputStream(endpoint.get().getFileEntity().getData());
             generateFilePom(endpoint, timestamp);
             return parser.parse(targetStream);
 
         } else if (endpoint.get().getFileEntity().getType().equals("application/x-zip-compressed")) {
             try {
+                logger.info("Parse zip started...");
                 String wsdlFileName = utilities.unzip(endpoint.get().getFileEntity(), timestamp);
-                String content = IOUtils.toString(BusinessTemplateApplication.class.getResourceAsStream("/pom.txt"), "UTF-8");
-                content = content.replace("{WSDL}", "<schemaLanguage>WSDL</schemaLanguage>\n" +
-                        "\t\t\t\t\t<generateDirectory>src/main/java</generateDirectory>\n" +
-                        "\t\t\t\t\t<generatePackage>com.soap.client.wsdl</generatePackage>\n" +
-                        "\t\t\t\t\t<schemaIncludes>\n" +
-                        "\t\t\t\t\t\t<include>*.xml</include>\n" +
-                        "\t\t\t\t\t</schemaIncludes>");
-                File mainFile = new File("D:/DYNAMIC-WSDL/" + timestamp + "/pom.xml");
-                FileUtils.writeStringToFile(mainFile, content, "UTF-8");
-                String xmlStream = "D:/DYNAMIC-WSDL/" + timestamp + "/src/main/resources" + "/" + wsdlFileName;
-                Definitions defs = parser.parse(xmlStream);
+                generateZipPom(timestamp);
+                String wsdlLocation = destinationPath + timestamp + "/src/main/resources" + "/" + wsdlFileName;
+                Definitions defs = parser.parse(wsdlLocation);
                 return defs;
             } catch (Exception e) {
                 logger.error(e.getMessage());
@@ -106,6 +108,7 @@ public class CodeGenerateServiceImpl implements CodeGenerateService{
     }
 
     private HashMap<String, String> generateMessageMap(Definitions definitions) {
+        logger.info("Generate message map started...");
         HashMap<String, String> messageMap = new HashMap<>();
 
         for (com.predic8.wsdl.Message msg : definitions.getMessages()) {
@@ -115,10 +118,12 @@ public class CodeGenerateServiceImpl implements CodeGenerateService{
                 }
             }
         }
+        logger.info("Generate message map completed...");
         return messageMap;
     }
 
     private HashMap<String, HashMap<String, String>> generateMap(Definitions definitions, HashMap<String, String> messageMap) {
+        logger.info("Generate map started...");
         HashMap<String, HashMap<String, String>> map = new HashMap<>();
 
         for (PortType pt : definitions.getPortTypes()) {
@@ -132,49 +137,51 @@ public class CodeGenerateServiceImpl implements CodeGenerateService{
                 map.put(op.getName(), wsdlMap);
             }
         }
-
+        logger.info("Generate map completed...");
         return map;
     }
 
     private void generateFilePom(Optional<EndpointEntity> endpoint, long timestamp) throws IOException {
+        logger.info("Generate file pom started...");
         InputStream initialStream = new ByteArrayInputStream(endpoint.get().getFileEntity().getData());
-        File targetFile = new File("D:/DYNAMIC-WSDL/" + timestamp + "/src/main/resources/app.xsd");
+        File targetFile = new File(destinationPath + timestamp + "/src/main/resources/app.xsd");
         FileUtils.copyInputStreamToFile(initialStream, targetFile);
 
         String content = IOUtils.toString(BusinessTemplateApplication.class.getResourceAsStream("/pom.txt"), "UTF-8");
-        content = content.replace("{WSDL}", "<schemaLanguage>WSDL</schemaLanguage>\n" +
-                "\t\t\t\t\t<generateDirectory>src/main/java</generateDirectory>\n" +
-                "\t\t\t\t\t<generatePackage>com.soap.client.wsdl</generatePackage>\n" +
-                "\t\t\t\t\t<schemaIncludes>\n" +
-                "\t\t\t\t\t\t<include>*.xsd</include>\n" +
-                "\t\t\t\t\t\t<include>*.xml</include>\n" +
-                "\t\t\t\t\t</schemaIncludes>");
-        File mainFile = new File("D:/DYNAMIC-WSDL/" + timestamp + "/pom.xml");
+        content = content.replace("{WSDL}", ReplacementConstants.generateFilePom);
+        File mainFile = new File(destinationPath + timestamp + "/pom.xml");
         FileUtils.writeStringToFile(mainFile, content, "UTF-8");
+        logger.info("Generate file pom completed...");
+    }
+
+    private void generateZipPom(long timestamp) throws IOException {
+        logger.info("Generate file pom started...");
+        String content = IOUtils.toString(BusinessTemplateApplication.class.getResourceAsStream("/pom.txt"), "UTF-8");
+        content = content.replace("{WSDL}", ReplacementConstants.generateZipPom);
+        File mainFile = new File(destinationPath + timestamp + "/pom.xml");
+        FileUtils.writeStringToFile(mainFile, content, "UTF-8");
+        logger.info("Generate file pom completed...");
     }
 
     private void generateUrlPom(Optional<EndpointEntity> endpoint, long timestamp) throws IOException {
+        logger.info("Generate url pom started...");
         String content = IOUtils.toString(BusinessTemplateApplication.class.getResourceAsStream("/pom.txt"), "UTF-8");
-        content = content.replace("{WSDL}", "" +
-                "\t\t\t\t\t<schemaLanguage>WSDL</schemaLanguage>\n" +
-                "\t\t\t\t\t<generateDirectory>src/main/java</generateDirectory>\n" +
-                "\t\t\t\t\t<generatePackage>com.soap.client.wsdl</generatePackage>\n" +
-                "\t\t\t\t\t<schemas>\n" +
-                "\t\t\t\t\t\t<schema>\n" +
-                "\t\t\t\t\t\t\t<url>" + endpoint.get().getUrl() + "</url>\n" +
-                "\t\t\t\t\t\t</schema>\n" +
-                "\t\t\t\t\t</schemas>");
-        File mainFile = new File("D:/DYNAMIC-WSDL/" + timestamp + "/pom.xml");
+        content = content.replace("{WSDL}", ReplacementConstants.generateUrlPomStart
+                + endpoint.get().getUrl() + ReplacementConstants.generateUrlPomEnd);
+        File mainFile = new File(destinationPath + timestamp + "/pom.xml");
         FileUtils.writeStringToFile(mainFile, content, "UTF-8");
+        logger.info("Generate url pom completed...");
     }
 
     private void generateProperties(Optional<EndpointEntity> endpoint, long timestamp) {
+        logger.info("Generate properties started...");
         try {
             String content = IOUtils.toString(BusinessTemplateApplication.class.getResourceAsStream("/properties.txt"), "UTF-8");
             content = content.replace("{ENDPOINT}", endpoint.get().getProduction());
             content = content.replace("{CONTEXT}", endpoint.get().getContext() + "/" + endpoint.get().getVersion());
-            File mainFile = new File("D:/DYNAMIC-WSDL/" + timestamp + "/src/main/resources/application.properties");
+            File mainFile = new File(destinationPath + timestamp + "/src/main/resources/application.properties");
             FileUtils.writeStringToFile(mainFile, content, "UTF-8");
+            logger.info("Generate properties completed...");
         } catch (IOException e) {
             logger.error(e.getMessage());
         }
@@ -182,6 +189,7 @@ public class CodeGenerateServiceImpl implements CodeGenerateService{
 
     private void generateController(HashMap<String, HashMap<String, String>> map, long timestamp, Optional<EndpointEntity> endpoint) {
         try {
+            logger.info("Generate controller started...");
             List<ControllerEntity> list = endpoint.get().getControllers();
             for (ControllerEntity controllerEntity : list) {
                 String content = IOUtils.toString(BusinessTemplateApplication.class.getResourceAsStream("/template_main.txt"), "UTF-8");
@@ -194,8 +202,9 @@ public class CodeGenerateServiceImpl implements CodeGenerateService{
                 content = content.replace("{OP}", operation);
                 String body = generateBody(map, timestamp, controllerEntity.getOperations(), capitalize(controllerEntity.getName()));
                 content = content.replace("{INSERT}", body);
-                File mainFile = new File("D:/DYNAMIC-WSDL/" + timestamp + "/src/main/java/com/soap/client/" + capitalize(controllerEntity.getName()) + "Controller.java");
+                File mainFile = new File(destinationPath + timestamp + "/src/main/java/com/soap/client/" + capitalize(controllerEntity.getName()) + "Controller.java");
                 FileUtils.writeStringToFile(mainFile, content, "UTF-8");
+                logger.info("Generate controller completed...");
             }
         } catch (IOException e) {
             logger.error(e.getMessage());
@@ -205,6 +214,7 @@ public class CodeGenerateServiceImpl implements CodeGenerateService{
     private String generateBody(HashMap<String, HashMap<String, String>> map, long timestamp, List<OperationEntity> operationEntityList, String contollerName) {
         String complete = "";
         try {
+            logger.info("Generate body started...");
             for (OperationEntity operationEntity : operationEntityList) {
                 String content = IOUtils.toString(BusinessTemplateApplication.class.getResourceAsStream("/operation.txt"), "UTF-8");
                 HashMap<String, String> tempMap = map.get(operationEntity.getOriginalValue());
@@ -214,6 +224,7 @@ public class CodeGenerateServiceImpl implements CodeGenerateService{
                 }
                 complete = complete.concat(content);
                 complete = complete.concat("\n");
+                logger.info("Generate body completed...");
             }
         } catch (IOException e) {
             logger.error(e.getMessage());
@@ -224,13 +235,15 @@ public class CodeGenerateServiceImpl implements CodeGenerateService{
     private void generateService(HashMap<String, HashMap<String, String>> map, long timestamp) {
         try {
             for (Map.Entry m : map.entrySet()) {
+                logger.info("Generate service started...");
                 String content = IOUtils.toString(BusinessTemplateApplication.class.getResourceAsStream("/template_service.txt"), "UTF-8");
                 HashMap<String, String> tempMap = (HashMap<String, String>) m.getValue();
                 for (Map.Entry a : tempMap.entrySet()) {
                     content = content.replace(a.getKey().toString(), a.getValue().toString());
                 }
-                File mainFile = new File("D:/DYNAMIC-WSDL/" + timestamp + "/src/main/java/com/soap/client/" + m.getKey() + "WebService.java");
+                File mainFile = new File(destinationPath + timestamp + "/src/main/java/com/soap/client/" + m.getKey() + "WebService.java");
                 FileUtils.writeStringToFile(mainFile, content, "UTF-8");
+                logger.info("Generate service completed...");
             }
         } catch (IOException e) {
             logger.error(e.getMessage());
