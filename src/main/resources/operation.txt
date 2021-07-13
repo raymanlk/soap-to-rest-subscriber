@@ -1,16 +1,29 @@
     @RequestMapping(value="/{SUB_PATH}", method = RequestMethod.POST, produces = "application/json")
-    public ResponseEntity<{GET_RESPONSE}> method{SUB_CLASS}(@RequestBody {GET_REQUEST} request) {
+    public ResponseEntity<{GET_RESPONSE}> method{SUB_CLASS}(@RequestBody {GET_REQUEST} request) throws ServerException {
+
+        logger.info("[NBREQ] - request starting");
+
         JAXBContextFactory jaxbFactory = new JAXBContextFactory.Builder()
                 .withMarshallerJAXBEncoding("UTF-8")
                 .build();
 
-        {SUB_CLASS}WebService myWebServiceCallInterface = Feign.builder()
-                .logger(new Slf4jLogger({CLASSNAME}))
-                .logLevel(Logger.Level.BASIC)
-                .encoder(new SOAPEncoder(jaxbFactory))
-                .decoder(new SOAPDecoder(jaxbFactory))
-                .target({SUB_CLASS}WebService.class, soapEndpoint);
+        {GET_RESPONSE} response = null;
 
-        {GET_RESPONSE} response = myWebServiceCallInterface.generate(request);
+        try {
+            {SUB_CLASS}WebService myWebServiceCallInterface = Feign.builder()
+                            .logger(new Slf4jLogger({CLASSNAME}))
+                            .logLevel(Logger.Level.BASIC)
+                            .encoder(new SOAPEncoder(jaxbFactory))
+                            .decoder(new SOAPDecoder(jaxbFactory))
+                            .target({SUB_CLASS}WebService.class, soapEndpoint);
+
+            response = myWebServiceCallInterface.generate(request);
+        } catch (FeignException e) {
+            logger.error(e.getMessage());
+            throw new ServerException(e.getMessage());
+        }
+
+        logger.info("[NBRES] - success");
+
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
