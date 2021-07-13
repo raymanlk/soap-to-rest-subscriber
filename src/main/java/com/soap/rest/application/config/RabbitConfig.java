@@ -1,5 +1,6 @@
 package com.soap.rest.application.config;
 
+import com.soap.rest.domain.service.CodeGenerateService;
 import com.soap.rest.domain.service.EndpointService;
 import com.soap.rest.domain.service.ListenerService;
 import com.soap.rest.external.util.Utilities;
@@ -23,17 +24,14 @@ public class RabbitConfig {
     }
 
     @Autowired
-    private EndpointService endpointService;
-
-    @Autowired
-    private Utilities utilities;
+    private CodeGenerateService codeGenerateService;
 
     @Bean
     MessageListenerContainer messageListenerContainer(ConnectionFactory connectionFactory) {
         SimpleMessageListenerContainer simpleMessageListenerContainer = new SimpleMessageListenerContainer();
         simpleMessageListenerContainer.setConnectionFactory(connectionFactory);
         simpleMessageListenerContainer.setQueues(queue());
-        simpleMessageListenerContainer.setMessageListener(new ListenerService(endpointService, utilities));
+        simpleMessageListenerContainer.setMessageListener(new ListenerService(codeGenerateService));
         return simpleMessageListenerContainer;
     }
 }
