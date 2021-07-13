@@ -2,6 +2,7 @@ package com.soap.rest.application.config;
 
 import com.soap.rest.domain.service.EndpointService;
 import com.soap.rest.domain.service.ListenerService;
+import com.soap.rest.external.util.Utilities;
 import org.springframework.amqp.core.Queue;
 import org.springframework.amqp.rabbit.connection.ConnectionFactory;
 import org.springframework.amqp.rabbit.listener.MessageListenerContainer;
@@ -24,12 +25,15 @@ public class RabbitConfig {
     @Autowired
     private EndpointService endpointService;
 
+    @Autowired
+    private Utilities utilities;
+
     @Bean
     MessageListenerContainer messageListenerContainer(ConnectionFactory connectionFactory) {
         SimpleMessageListenerContainer simpleMessageListenerContainer = new SimpleMessageListenerContainer();
         simpleMessageListenerContainer.setConnectionFactory(connectionFactory);
         simpleMessageListenerContainer.setQueues(queue());
-        simpleMessageListenerContainer.setMessageListener(new ListenerService(endpointService));
+        simpleMessageListenerContainer.setMessageListener(new ListenerService(endpointService, utilities));
         return simpleMessageListenerContainer;
     }
 }
