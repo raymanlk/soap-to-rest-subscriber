@@ -1,0 +1,46 @@
+package com.soap.client;
+
+import com.soap.client.wsdl.{GET_REQUEST};
+import com.soap.client.wsdl.{GET_RESPONSE};
+import feign.Feign;
+import feign.jaxb.JAXBContextFactory;
+import feign.soap.SOAPDecoder;
+import feign.soap.SOAPEncoder;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
+
+@RestController
+@RequestMapping(path="{PATH}")
+public class {SUB_CLASS}Controller {
+
+    @Value("${wsdl.url}")
+    private String wsdlPath;
+
+    @Value("${soap.endpoint}")
+    private String soapEndpoint;
+
+    @ApiOperation(value = "This API is used for {SUB_PATH}")
+    @ApiResponses(value = {
+            @ApiResponse(code = 200, message = "success response", response = {GET_RESPONSE}.class)
+    })
+
+    @RequestMapping(value="/{SUB_PATH}", method = RequestMethod.POST)
+    public ResponseEntity<{GET_RESPONSE}> getJSON(@RequestBody {GET_REQUEST} request) {
+        JAXBContextFactory jaxbFactory = new JAXBContextFactory.Builder()
+                .withMarshallerJAXBEncoding("UTF-8")
+                .withMarshallerSchemaLocation(wsdlPath)
+                .build();
+
+        {SUB_CLASS}WebService myWebServiceCallInterface = Feign.builder()
+                .encoder(new SOAPEncoder(jaxbFactory))
+                .decoder(new SOAPDecoder(jaxbFactory))
+                .target({SUB_CLASS}WebService.class, soapEndpoint);
+
+        {GET_RESPONSE} response = myWebServiceCallInterface.generate(request);
+        return new ResponseEntity<>(response, HttpStatus.OK);
+    }
+}

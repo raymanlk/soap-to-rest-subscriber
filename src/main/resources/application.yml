@@ -1,0 +1,27 @@
+server:
+  port: 8083
+base-url:
+  context: base-template
+app:
+  host: APP_BASE_PATH_PLACEHOLDER
+log:
+  identifierKey: UUID
+  isDebug: true
+info:
+  app:
+    name :  base-template
+    msName : base-template
+
+spring.datasource.url: jdbc:mysql://localhost:3306/soap_to_rest
+spring.datasource.username: root
+spring.jpa.hibernate.ddl-auto: update
+spring.datasource.maxActive: 20
+spring.datasource.maxIdle: 10
+spring.datasource.maxWait: 10000
+spring.datasource.driverClassName: com.mysql.cj.jdbc.Driver
+spring.datasource.password: root
+spring.jpa.generate-ddl: "true"
+spring.jpa.show-sql: "true"
+
+queue:
+  name: hello

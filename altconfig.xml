@@ -1,0 +1,69 @@
+<!-- 1. ci -->
+<project>
+    <actions></actions>
+    <description>Build and test the app.</description>
+    <keepDependencies>false</keepDependencies>
+    <properties>
+        <com.coravy.hudson.plugins.github.GithubProjectProperty>
+            <projectUrl>https://github.com/raymanlk/soap-template/</projectUrl>
+        </com.coravy.hudson.plugins.github.GithubProjectProperty>
+    </properties>
+    <canRoam>true</canRoam>
+    <disabled>false</disabled>
+    <blockBuildWhenDownstreamBuilding>false</blockBuildWhenDownstreamBuilding>
+    <blockBuildWhenUpstreamBuilding>false</blockBuildWhenUpstreamBuilding>
+    <triggers></triggers>
+    <concurrentBuild>false</concurrentBuild>
+    <builders>
+        <hudson.tasks.Maven>
+            <targets>compile</targets>
+            <targets>package</targets>
+            <properties>skipTests=true
+                soap.endpoint=${0}
+                wsdl.url=${1}</properties>
+            <mavenName>mvn</mavenName>
+            <jvmOptions></jvmOptions>
+            <usePrivateRepository>false</usePrivateRepository>
+            <settings class='org.jenkinsci.plugins.configfiles.maven.job.MvnSettingsProvider'>
+                <settingsConfigId>central-mirror</settingsConfigId>
+            </settings>
+        </hudson.tasks.Maven>
+        <com.cloudbees.dockerpublish.DockerBuilder>
+            <server></server>
+            <registry></registry>
+            <repoName>adltuan/soap-to-rest</repoName>
+            <noCache>false</noCache>
+            <forcePull>true</forcePull>
+            <dockerfilePath></dockerfilePath>
+            <skipBuild>false</skipBuild>
+            <skipDecorate>false</skipDecorate>
+            <repoTag></repoTag>
+            <skipPush>false</skipPush>
+            <createFingerprint>true</createFingerprint>
+            <skipTagLatest>false</skipTagLatest>
+            <buildContext></buildContext>
+            <buildAdditionalArgs></buildAdditionalArgs>
+            <forceTag>true</forceTag>
+        </com.cloudbees.dockerpublish.DockerBuilder>
+    </builders>
+    <publishers></publishers>
+    <buildWrappers></buildWrappers>
+    <scm class='hudson.plugins.git.GitSCM'>
+        <userRemoteConfigs>
+            <hudson.plugins.git.UserRemoteConfig>
+                <url>https://github.com/raymanlk/soap-template.git</url>
+            </hudson.plugins.git.UserRemoteConfig>
+        </userRemoteConfigs>
+        <branches>
+            <hudson.plugins.git.BranchSpec>
+                <name>**</name>
+            </hudson.plugins.git.BranchSpec>
+        </branches>
+        <configVersion>2</configVersion>
+        <doGenerateSubmoduleConfigurations>false</doGenerateSubmoduleConfigurations>
+        <gitTool>Default</gitTool>
+        <browser class='hudson.plugins.git.browser.GithubWeb'>
+            <url>https://github.com/raymanlk/soap-template/</url>
+        </browser>
+    </scm>
+</project>

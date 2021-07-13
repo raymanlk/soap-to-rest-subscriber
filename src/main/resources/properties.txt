@@ -1,0 +1,5 @@
+server.port=8090
+soap.endpoint={ENDPOINT}
+base-url.context={CONTEXT}
+logging.level.com.soap.client=DEBUG
+management.endpoints.web.exposure.include=prometheus,health,info,metric

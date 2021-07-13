@@ -1,0 +1,8 @@
+package com.soap.client;
+
+import com.soap.client.wsdl.{GET_REQUEST};
+import com.soap.client.wsdl.{GET_RESPONSE};
+
+public interface {SUB_CLASS}WebService extends WebServiceCallInterface<{GET_REQUEST}, {GET_RESPONSE}> {
+
+}
