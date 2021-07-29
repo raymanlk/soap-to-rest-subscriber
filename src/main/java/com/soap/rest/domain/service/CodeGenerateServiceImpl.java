@@ -2,11 +2,13 @@ package com.soap.rest.domain.service;
 
 import com.predic8.wsdl.*;
 import com.soap.rest.BusinessTemplateApplication;
+import com.soap.rest.application.config.AppContext;
 import com.soap.rest.domain.model.entity.ControllerEntity;
 import com.soap.rest.domain.model.entity.EndpointEntity;
+import com.soap.rest.domain.model.entity.FileEntity;
 import com.soap.rest.domain.model.entity.OperationEntity;
+import com.soap.rest.external.service.ArchiveFormat;
 import com.soap.rest.external.util.ReplacementConstants;
-import com.soap.rest.external.util.Utilities;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.slf4j.Logger;
@@ -33,7 +35,7 @@ public class CodeGenerateServiceImpl implements CodeGenerateService {
     private EndpointService endpointService;
 
     @Autowired
-    private Utilities utilities;
+    private AppContext context;
 
     @Value("${destination.root-path}")
     private String destinationPath;
@@ -92,19 +94,20 @@ public class CodeGenerateServiceImpl implements CodeGenerateService {
             generateFilePom(endpoint, timestamp);
             return parser.parse(targetStream);
 
-        } else if (endpoint.get().getFileEntity().getType().equals("application/x-zip-compressed")) {
-            try {
-                logger.info("Parse zip started...");
-                String wsdlFileName = utilities.unzip(endpoint.get().getFileEntity(), timestamp);
-                generateZipPom(timestamp);
-                String wsdlLocation = destinationPath + timestamp + "/src/main/resources" + "/" + wsdlFileName;
-                Definitions defs = parser.parse(wsdlLocation);
-                return defs;
-            } catch (Exception e) {
-                logger.error(e.getMessage());
-            }
+
+        } else {
+            logger.info("Parse file started...");
+            generateFilePom(timestamp);
+            FileEntity fileEntity = endpoint.get().getFileEntity();
+            ArchiveFormat instance = AppContext.getBean(fileEntity.getType(), ArchiveFormat.class);
+            String wsdlFileName = instance.extract(fileEntity, timestamp);
+            String wsdlLocation = destinationPath + timestamp + "/src/main/resources" + "/" + wsdlFileName;
+            Definitions defs = parser.parse(wsdlLocation);
+            logger.info("Parse file completed...");
+
+            return defs;
+
         }
-        return null;
     }
 
     private HashMap<String, String> generateMessageMap(Definitions definitions) {
@@ -154,7 +157,7 @@ public class CodeGenerateServiceImpl implements CodeGenerateService {
         logger.info("Generate file pom completed...");
     }
 
-    private void generateZipPom(long timestamp) throws IOException {
+    private void generateFilePom(long timestamp) throws IOException {
         logger.info("Generate file pom started...");
         String content = IOUtils.toString(BusinessTemplateApplication.class.getResourceAsStream("/pom.txt"), "UTF-8");
         content = content.replace("{WSDL}", ReplacementConstants.generateZipPom);
