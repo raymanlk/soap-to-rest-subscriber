@@ -3,10 +3,8 @@ package com.soap.rest.domain.service;
 import com.predic8.wsdl.*;
 import com.soap.rest.BusinessTemplateApplication;
 import com.soap.rest.application.config.AppContext;
-import com.soap.rest.domain.model.entity.ControllerEntity;
-import com.soap.rest.domain.model.entity.EndpointEntity;
-import com.soap.rest.domain.model.entity.FileEntity;
-import com.soap.rest.domain.model.entity.OperationEntity;
+import com.soap.rest.domain.model.entity.*;
+import com.soap.rest.domain.repository.StatusRepository;
 import com.soap.rest.external.service.ArchiveFormat;
 import com.soap.rest.external.util.ReplacementConstants;
 import org.apache.commons.io.FileUtils;
@@ -37,6 +35,9 @@ public class CodeGenerateServiceImpl implements CodeGenerateService {
     @Autowired
     private AppContext context;
 
+    @Autowired
+    private StatusRepository statusRepository;
+
     @Value("${destination.root-path}")
     private String destinationPath;
 
@@ -44,6 +45,10 @@ public class CodeGenerateServiceImpl implements CodeGenerateService {
     public void generate(Long id) {
         logger.info("Database Id: {}", id);
         Optional<EndpointEntity> endpoint = endpointService.findById(id);
+        StatusEntity statusEntity = new StatusEntity();
+        statusEntity.setEndpointEntity(endpoint.get());
+        statusEntity.setStatus("START");
+        statusRepository.save(statusEntity);
         if (endpoint.isPresent()) {
             logger.info("Endpoint url: {}", endpoint.get().getUrl());
         } else {
@@ -80,6 +85,10 @@ public class CodeGenerateServiceImpl implements CodeGenerateService {
         generateController(map, timestamp, endpoint);
         generateService(map, timestamp);
         logger.info("Successfully generated project");
+        StatusEntity statusEntity = new StatusEntity();
+        statusEntity.setEndpointEntity(endpoint.get());
+        statusEntity.setStatus("COMPLETE");
+        statusRepository.save(statusEntity);
     }
 
     private Definitions parseWsdl(Optional<EndpointEntity> endpoint, long timestamp) throws IOException {

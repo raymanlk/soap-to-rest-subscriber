@@ -3,7 +3,6 @@ import com.fasterxml.jackson.annotation.JsonManagedReference;
 
 import javax.persistence.*;
 import java.util.List;
-
 @Entity
 public class EndpointEntity {
     @Id
@@ -19,11 +18,14 @@ public class EndpointEntity {
     private boolean cors;
     @OneToOne(cascade = CascadeType.MERGE)
     @JoinColumn(name = "file_id", referencedColumnName = "id")
-
     private FileEntity fileEntity;
     @OneToMany(fetch = FetchType.EAGER, mappedBy = "endpointEntity", cascade = CascadeType.ALL)
     @JsonManagedReference
     private List<ControllerEntity> controllers;
+
+
+    @OneToOne(mappedBy = "endpointEntity")
+    private StatusEntity statusEntity;
 
     public EndpointEntity() {
     }
@@ -114,5 +116,13 @@ public class EndpointEntity {
 
     public void setControllers(List<ControllerEntity> controllers) {
         this.controllers = controllers;
+    }
+
+    public StatusEntity getStatusEntity() {
+        return statusEntity;
+    }
+
+    public void setStatusEntity(StatusEntity statusEntity) {
+        this.statusEntity = statusEntity;
     }
 }
