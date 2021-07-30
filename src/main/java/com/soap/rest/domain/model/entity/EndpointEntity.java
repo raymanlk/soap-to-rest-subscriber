@@ -1,5 +1,6 @@
 package com.soap.rest.domain.model.entity;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
+import org.hibernate.annotations.ColumnDefault;
 
 import javax.persistence.*;
 import java.util.List;
@@ -26,6 +27,10 @@ public class EndpointEntity {
 
     @OneToOne(mappedBy = "endpointEntity")
     private StatusEntity statusEntity;
+
+    @Column(name = "complete")
+    @ColumnDefault("0")
+    private int complete;
 
     public EndpointEntity() {
     }
@@ -124,5 +129,13 @@ public class EndpointEntity {
 
     public void setStatusEntity(StatusEntity statusEntity) {
         this.statusEntity = statusEntity;
+    }
+
+    public int getComplete() {
+        return complete;
+    }
+
+    public void setComplete(int complete) {
+        this.complete = complete;
     }
 }

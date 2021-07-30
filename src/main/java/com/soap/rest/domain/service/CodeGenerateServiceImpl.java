@@ -4,6 +4,7 @@ import com.predic8.wsdl.*;
 import com.soap.rest.BusinessTemplateApplication;
 import com.soap.rest.application.config.AppContext;
 import com.soap.rest.domain.model.entity.*;
+import com.soap.rest.domain.repository.EndpointRepository;
 import com.soap.rest.domain.repository.StatusRepository;
 import com.soap.rest.external.service.ArchiveFormat;
 import com.soap.rest.external.util.ReplacementConstants;
@@ -37,6 +38,9 @@ public class CodeGenerateServiceImpl implements CodeGenerateService {
 
     @Autowired
     private StatusRepository statusRepository;
+
+    @Autowired
+    private EndpointRepository endpointRepository;
 
     @Value("${destination.root-path}")
     private String destinationPath;
@@ -88,7 +92,10 @@ public class CodeGenerateServiceImpl implements CodeGenerateService {
         StatusEntity statusEntity = new StatusEntity();
         statusEntity.setEndpointEntity(endpoint.get());
         statusEntity.setStatus("COMPLETE");
+        EndpointEntity newEntity = endpoint.get();
+        newEntity.setComplete(1);
         statusRepository.save(statusEntity);
+        endpointRepository.save(newEntity);
     }
 
     private Definitions parseWsdl(Optional<EndpointEntity> endpoint, long timestamp) throws IOException {
